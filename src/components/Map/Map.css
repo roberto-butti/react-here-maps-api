@@ -1,4 +1,19 @@
-.App-map  {
-    height: 90vh;
-    background: #f0e68c;
+.mapWrapper {
+  display: flex;
+  justify-content: space-between;
+}
+
+.map {
+  width: 80%;
+  border: 1px solid black;
+  height: 90vh;
+  background: #f0e68c;
+}
+
+.sidebar {
+  width: 20%;
+  height: 40vh;
+  border: 1px solid black;
+  padding: 15px;
+  background-color: #fff;
 }
