@@ -1,5 +1,7 @@
 # React and HERE Maps API
 
+![3D Map - Rome](screenshot_map_react_here_typescript_3d.png)
+
 This small side project includes:
 
 - Playing with React and Typescript
