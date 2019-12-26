@@ -19,17 +19,55 @@ interface IState {
   heading: number;
 }
 
+interface IPlace {
+  lat: number;
+  lng: number;
+  name: string;
+}
+
+let places: IPlace[] =  [
+  {
+    lat: 41.890251,
+    lng: 12.492373,
+    name: "Colosseum"
+  },
+  {
+    lat: 41.894599,
+    lng: 12.483092,
+    name: "Altare della Patria"
+  },
+
+
+]
+
 class Map extends Component<IProps, IState> {
   constructor(props: IProps) {
     super(props);
     this.state = {
-      lat: 41.890251,
-      lng: 12.492373,
+      lat: places[0].lat,
+      lng: places[0].lng,
       zoom: 17,
       heading: 0
     };
   }
 
+
+  calculateRoute(platform: any) {
+    var router = platform.getRoutingService(),
+      parameters = {
+        waypoint0: String(places[0].lat) + "," +  String(places[0].lng),
+        waypoint1: String(places[1].lat) + "," +  String(places[1].lng),
+        mode: 'fastest;pedestrian',
+        /* departure: 'now' */
+      };
+      console.log(parameters);
+      router.calculateRoute(parameters,
+        function (result: any) {
+          console.log(result);
+        }, function (error: any) {
+          console.error(error);
+        });
+  }
   componentDidMount() {
     let H = (window as any).H;
     var platform = new H.service.Platform({
@@ -48,10 +86,11 @@ class Map extends Component<IProps, IState> {
       }
     );
 
-    map.getViewModel().setLookAtData({ tilt: 45, heading: this.state.heading });
+    //map.getViewModel().setLookAtData({ /*tilt: 45,*/ heading: this.state.heading });
 
     //setTimeout(() => {
       setInterval(() => {
+        /* HEADING
         this.setState({
           heading: this.state.heading + 10
         });
@@ -59,7 +98,8 @@ class Map extends Component<IProps, IState> {
           tilt: 45,
           heading: this.state.heading
         });
-        console.log(this.state)
+        */
+        //console.log(this.state)
       }, 1000);
     //}, 300);
     // add a resize listener to make sure that the map occupies the whole container
@@ -74,6 +114,7 @@ class Map extends Component<IProps, IState> {
     var ui = H.ui.UI.createDefault(map, defaultLayers);
 
     console.log(behavior, ui);
+    this.calculateRoute(platform);
   }
   render() {
     return (
