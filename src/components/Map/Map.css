@@ -3,6 +3,8 @@
   justify-content: space-between;
 }
 
+
+
 .map {
   width: 80%;
   border: 1px solid black;
@@ -10,10 +12,15 @@
   background: #f0e68c;
 }
 
-.sidebar {
+.mapSidebar {
   width: 20%;
   height: 40vh;
+  text-align: left;
   border: 1px solid black;
-  padding: 15px;
+  padding: 0px;
   background-color: #fff;
+}
+li {
+  list-style: circle;
+  
 }
