@@ -17,21 +17,124 @@ interface IState {
   lng: number;
   zoom: number;
   heading: number;
+  rotate: boolean;
 }
+
+interface IPlace {
+  lat: number;
+  lng: number;
+  name: string;
+}
+
+let places: IPlace[] = [
+  {
+    lat: 41.890251,
+    lng: 12.492373,
+    name: "Colosseum"
+  },
+  {
+    lat: 41.90296,
+    lng: 12.45336,
+    name: "Basilica di San Pietro"
+  },
+
+
+]
+
+let H = (window as any).H;
 
 class Map extends Component<IProps, IState> {
   constructor(props: IProps) {
     super(props);
     this.state = {
-      lat: 41.890251,
-      lng: 12.492373,
+      lat: places[0].lat,
+      lng: places[0].lng,
       zoom: 17,
-      heading: 0
+      heading: 0,
+      rotate: false,
     };
   }
 
+  addManueversToMap(map: any, route: any) {
+    //var svgMarkup = '',
+    //dotIcon = new H.map.Icon(svgMarkup, { anchor: { x: 8, y: 8 } }),
+    var group = new H.map.Group(),
+      i,
+      j;
+    var lineString = new H.geo.LineString();
+    // Add a marker for each maneuver
+    console.log("ROUTE",route);
+    for (i = 0; i < route.leg.length; i += 1) {
+      for (j = 0; j < route.leg[i].maneuver.length; j += 1) {
+        // Get the next maneuver.
+        let maneuver = route.leg[i].maneuver[j];
+        // Add a marker to the maneuvers group
+        console.log(maneuver.position);
+        var marker = new H.map.Marker({
+          lat: maneuver.position.latitude,
+          lng: maneuver.position.longitude
+        },
+        );
+        //lineString.pushPoint({ lat: maneuver.position.latitude, lng: maneuver.position.longitude });
+
+        marker.instruction = maneuver.instruction;
+        group.addObject(marker);
+      }
+    }
+    
+    for (i = 0; i < route.shape.length; i += 1) {
+      let point = route.shape[i];
+      let  parts = point.split(',');
+      lineString.pushLatLngAlt(parts[0], parts[1]);
+    }
+
+    let polyline =new H.map.Polyline(
+      lineString, { style: { lineWidth: 4 ,
+      strokeColor: 'rgba(0, 128, 255, 0.7)'} }
+    ); 
+    map.addObject(polyline);
+
+    /*
+    map.getViewModel().setLookAtData({
+      bounds: polyline.getBoundingBox()
+    });
+    */
+
+    group.addEventListener('tap', function (evt: any) {
+      map.setCenter(evt.target.getGeometry());
+
+    }, false);
+
+    // Add the maneuvers group to the map
+    map.addObject(group);
+  }
+
+  parseRoute(map: any, result: any) {
+    console.log(result.response.route[0].leg[0].maneuver)
+    this.addManueversToMap(map, result.response.route[0]);
+
+  }
+
+  calculateRoute(map: any, platform: any) {
+    var router = platform.getRoutingService(),
+      parameters = {
+        waypoint0: String(places[0].lat) + "," + String(places[0].lng),
+        waypoint1: String(places[1].lat) + "," + String(places[1].lng),
+        routeattributes: 'waypoints,summary,shape,legs',
+        maneuverattributes: 'direction,action',
+        mode: 'fastest;pedestrian',
+        /* departure: 'now' */
+      };
+    console.log(parameters);
+    router.calculateRoute(parameters,
+      (result: any) => {
+        this.parseRoute(map, result);
+      }, function (error: any) {
+        console.error(error);
+      });
+  }
   componentDidMount() {
-    let H = (window as any).H;
+
     var platform = new H.service.Platform({
       apikey: process.env.REACT_APP_HERE_APIKEY
     });
@@ -50,18 +153,19 @@ class Map extends Component<IProps, IState> {
 
     map.getViewModel().setLookAtData({ tilt: 45, heading: this.state.heading });
 
-    //setTimeout(() => {
+    setTimeout(() => {
       setInterval(() => {
-        this.setState({
-          heading: this.state.heading + 10
-        });
-        map.getViewModel().setLookAtData({
-          tilt: 45,
-          heading: this.state.heading
-        });
-        console.log(this.state)
+        if (this.state.rotate) {
+          this.setState({
+            heading: this.state.heading + 10
+          });
+          map.getViewModel().setLookAtData({
+            tilt: 45,
+            heading: this.state.heading
+          });
+        }
       }, 1000);
-    //}, 300);
+    }, 300);
     // add a resize listener to make sure that the map occupies the whole container
     window.addEventListener("resize", () => map.getViewPort().resize());
 
@@ -74,12 +178,27 @@ class Map extends Component<IProps, IState> {
     var ui = H.ui.UI.createDefault(map, defaultLayers);
 
     console.log(behavior, ui);
+    this.calculateRoute(map, platform);
+    //map.addEventListener("change", () => console.log("Prova"));
+
+
+    //map.ChangeEvent()
   }
   render() {
     return (
       <div className="mapWrapper">
         <div className="map" id="map"></div>
-        <div className="mapSidebar"></div>
+        <div className="mapSidebar" id="sidebar">
+          <ul>
+
+            <li>Lat: {this.state.lat}</li>
+            <li>Lng: {this.state.lng}</li>
+            <li>Zoom: {this.state.zoom}</li>
+          </ul>
+          <button></button>
+
+
+        </div>
       </div>
     );
   }
