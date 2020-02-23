@@ -12,12 +12,16 @@ interface IProps {
   debug?: boolean;
 }
 
+
+
 interface IState {
   lat: number;
   lng: number;
   zoom: number;
   heading: number;
   rotate: boolean;
+  path: string[];
+  idxPath: number;
 }
 
 interface IPlace {
@@ -52,6 +56,8 @@ class Map extends Component<IProps, IState> {
       zoom: 17,
       heading: 0,
       rotate: false,
+      path: [],
+      idxPath: -1
     };
   }
 
@@ -63,7 +69,6 @@ class Map extends Component<IProps, IState> {
       j;
     var lineString = new H.geo.LineString();
     // Add a marker for each maneuver
-    console.log("ROUTE",route);
     for (i = 0; i < route.leg.length; i += 1) {
       for (j = 0; j < route.leg[i].maneuver.length; j += 1) {
         // Get the next maneuver.
@@ -73,15 +78,18 @@ class Map extends Component<IProps, IState> {
         var marker = new H.map.Marker({
           lat: maneuver.position.latitude,
           lng: maneuver.position.longitude
-        },
-        );
+        });
         //lineString.pushPoint({ lat: maneuver.position.latitude, lng: maneuver.position.longitude });
 
         marker.instruction = maneuver.instruction;
         group.addObject(marker);
       }
     }
-    
+    this.setState({
+      path: route.shape,
+      idxPath: 0
+      
+    });
     for (i = 0; i < route.shape.length; i += 1) {
       let point = route.shape[i];
       let  parts = point.split(',');
@@ -99,6 +107,10 @@ class Map extends Component<IProps, IState> {
       bounds: polyline.getBoundingBox()
     });
     */
+
+    this.setState({
+      idxPath : 0
+    });
 
     group.addEventListener('tap', function (evt: any) {
       map.setCenter(evt.target.getGeometry());
@@ -133,6 +145,30 @@ class Map extends Component<IProps, IState> {
         console.error(error);
       });
   }
+
+
+toRadians(degrees: number): number {
+  return degrees * Math.PI / 180;
+}
+
+toDegrees(radians: number): number {
+  return radians * 180 / Math.PI;
+}
+
+  bearing(startLat: number, startLng: number, destLat: number, destLng: number) {
+    startLat = this.toRadians(startLat);
+  startLng = this.toRadians(startLng);
+  destLat = this.toRadians(destLat);
+  destLng = this.toRadians(destLng);
+
+  let y = Math.sin(destLng - startLng) * Math.cos(destLat);
+  let x = Math.cos(startLat) * Math.sin(destLat) -
+        Math.sin(startLat) * Math.cos(destLat) * Math.cos(destLng - startLng);
+  let brng = Math.atan2(y, x);
+  brng = this.toDegrees(brng);
+  return (brng + 360) % 360;
+  }
+
   componentDidMount() {
 
     var platform = new H.service.Platform({
@@ -143,7 +179,10 @@ class Map extends Component<IProps, IState> {
     //Step 2: initialize a map - this map is centered over Europe
     var map = new H.Map(
       document.getElementById("map"),
-      defaultLayers.vector.normal.map,
+      //defaultLayers.vector.normal.map,
+      //defaultLayers.raster.terrain.map,
+      defaultLayers.raster.satellite.map,
+      
       {
         center: { lat: this.state.lat, lng: this.state.lng },
         zoom: this.state.zoom,
@@ -153,19 +192,42 @@ class Map extends Component<IProps, IState> {
 
     map.getViewModel().setLookAtData({ tilt: 45, heading: this.state.heading });
 
+
     setTimeout(() => {
       setInterval(() => {
-        if (this.state.rotate) {
+        if (this.state.idxPath >= 0 && this.state.idxPath < this.state.path.length) {
+          let center = this.state.path[this.state.idxPath].split(',');
+          if (this.state.idxPath < this.state.path.length -1) {
+            let nextCenter = this.state.path[this.state.idxPath+1].split(',');
+            this.setState(
+              {
+                heading : this.bearing( +nextCenter[0], +nextCenter[1],+center[0],+center[1])
+              }
+            )
+          }
+          
+
+          map.setCenter(
+            {
+              lat: center[0],
+              lng: center[1]
+            }
+          );
+
+          map.setZoom(this.state.zoom);
+          
+          
+          map.getViewModel().setLookAtData({ tilt: 60, heading: this.state.heading });
           this.setState({
-            heading: this.state.heading + 10
+            idxPath : this.state.idxPath + 1,
+            lat: +center[0],
+            lng: +center[1],
+            zoom: 20
           });
-          map.getViewModel().setLookAtData({
-            tilt: 45,
-            heading: this.state.heading
-          });
+
         }
-      }, 1000);
-    }, 300);
+      }, 2000);
+    }, 1000);
     // add a resize listener to make sure that the map occupies the whole container
     window.addEventListener("resize", () => map.getViewPort().resize());
 
