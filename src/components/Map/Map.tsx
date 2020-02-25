@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { bearing } from "../../helpers/utils/map";
 
 import "./Map.css";
 declare global {
@@ -147,27 +148,7 @@ class Map extends Component<IProps, IState> {
   }
 
 
-toRadians(degrees: number): number {
-  return degrees * Math.PI / 180;
-}
 
-toDegrees(radians: number): number {
-  return radians * 180 / Math.PI;
-}
-
-  bearing(startLat: number, startLng: number, destLat: number, destLng: number) {
-    startLat = this.toRadians(startLat);
-  startLng = this.toRadians(startLng);
-  destLat = this.toRadians(destLat);
-  destLng = this.toRadians(destLng);
-
-  let y = Math.sin(destLng - startLng) * Math.cos(destLat);
-  let x = Math.cos(startLat) * Math.sin(destLat) -
-        Math.sin(startLat) * Math.cos(destLat) * Math.cos(destLng - startLng);
-  let brng = Math.atan2(y, x);
-  brng = this.toDegrees(brng);
-  return (brng + 360) % 360;
-  }
 
   componentDidMount() {
 
@@ -201,7 +182,7 @@ toDegrees(radians: number): number {
             let nextCenter = this.state.path[this.state.idxPath+1].split(',');
             this.setState(
               {
-                heading : this.bearing( +nextCenter[0], +nextCenter[1],+center[0],+center[1])
+                heading : bearing( +nextCenter[0], +nextCenter[1],+center[0],+center[1])
               }
             )
           }
